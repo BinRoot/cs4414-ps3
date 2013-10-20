@@ -24,7 +24,6 @@ use std::comm::*;
 
 static PORT:    int = 4414;
 static IPV4_LOOPBACK: &'static str = "127.0.0.1";
-static mut visitor_count: uint = 0;
 
 struct sched_msg {
     stream: Option<std::rt::io::net::tcp::TcpStream>,
@@ -73,20 +72,33 @@ fn main() {
     
     println(fmt!("Listening on tcp port %d ...", PORT));
     let mut acceptor = socket.listen().unwrap();
+
+    let mycount: uint = 0;
+    let shared_mycount = arc::RWArc::new(mycount);
     
     // we can limit the incoming connection count.
     //for stream in acceptor.incoming().take(10 as uint) {
+
+
     for stream in acceptor.incoming() {
+
         let stream = Cell::new(stream);
+
+        let update_count = shared_mycount.clone();
         
         // Start a new task to handle the connection
         let child_chan = chan.clone();
-        do spawn {
-            unsafe {
-                visitor_count += 1;
+        do spawn{ 
+
+            let mut vcount = 0;
+            do update_count.write |c| {
+                *c += 1;
+                println(fmt!("incremented count, %ulo", *c));
+                vcount = *c;
             }
-            
+
             let mut stream = stream.take();
+
             let mut buf = [0, ..500];
             stream.read(buf);
             let request_str = str::from_utf8(buf);
@@ -109,7 +121,7 @@ fn main() {
                          <body>
                          <h1>Greetings, Krusty!</h1>
                          <h2>Visitor count: %u</h2>
-                         </body></html>\r\n", unsafe{visitor_count});
+                         </body></html>\r\n", vcount );
 
                     stream.write(response.as_bytes());
                 }
