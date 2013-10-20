@@ -93,7 +93,7 @@ fn main() {
             let mut vcount = 0;
             do update_count.write |c| {
                 *c += 1;
-                println(fmt!("incremented count, %ulo", *c));
+                println(fmt!("incremented count, %u", *c));
                 vcount = *c;
             }
 
