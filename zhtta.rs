@@ -97,12 +97,21 @@ fn main() {
                 vcount = *c;
             }
 
+// let v = ~[1]; let x = Some(v); match x { Some(ref y) => {} None => {}} x
+
             let mut stream = stream.take();
+
+            stream.and_then_mut_ref(|x| {
+                    let pn = x.peer_name();
+                    println(fmt!("Peer address: %s", pn.to_str()));
+                    Some(x)
+                });
+
 
             let mut buf = [0, ..500];
             stream.read(buf);
             let request_str = str::from_utf8(buf);
-            
+
             let req_group : ~[&str]= request_str.splitn_iter(' ', 3).collect();
             if req_group.len() > 2 {
                 let path = req_group[1];
