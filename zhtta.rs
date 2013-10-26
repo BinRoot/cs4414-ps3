@@ -24,7 +24,6 @@ use std::comm::*;
 
 static PORT:    int = 4414;
 static IP: &'static str = "127.0.0.1";
-static mut visitor_count: uint = 0;
 
 struct sched_msg {
     stream: Option<std::rt::io::net::tcp::TcpStream>,
@@ -88,16 +87,22 @@ fn main() {
     println(fmt!("Listening on %s:%d ...", ip.to_str(), PORT));
     let mut acceptor = socket.listen().unwrap();
     
+    let mycount: uint = 0;
+    let shared_mycount = arc::RWArc::new(mycount);
+
     for stream in acceptor.incoming() {
         let stream = Cell::new(stream);
-        
+
         // Start a new task to handle the each connection
         let child_chan = chan.clone();
         let child_add_vec = add_vec.clone();
+        let update_count = shared_mycount.clone();
         do spawn {
-            unsafe {
-                visitor_count += 1;
-            }
+            let mut visitor_count = 0;
+            do update_count.write |c| {
+                *c += 1;
+                visitor_count = *c;
+             }
             
             let mut stream = stream.take();
             let mut buf = [0, ..500];
@@ -122,7 +127,7 @@ fn main() {
                          <body>
                          <h1>Greetings, Krusty!</h1>
                          <h2>Visitor count: %u</h2>
-                         </body></html>\r\n", unsafe{visitor_count});
+                         </body></html>\r\n", visitor_count);
 
                     stream.write(response.as_bytes());
                 }
