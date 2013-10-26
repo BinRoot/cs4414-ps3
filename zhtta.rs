@@ -105,6 +105,19 @@ fn main() {
              }
             
             let mut stream = stream.take();
+
+            let mut visitor_ip: IpAddr = std::rt::io::net::ip::Ipv4Addr(-1, -1, -1, -1);
+
+            stream.and_then_mut_ref(|x| {
+                    match x.peer_name() {
+                        Some(sock_addr) => {visitor_ip = sock_addr.ip;},
+                        None => ()
+                    }
+                    Some(x)
+                });
+
+            println(fmt!("Visitor IP is %s", visitor_ip.to_str()));
+
             let mut buf = [0, ..500];
             stream.read(buf);
             let request_str = str::from_utf8(buf);
