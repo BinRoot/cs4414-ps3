@@ -21,17 +21,20 @@ use std::cell::Cell;
 use std::{os, str, io};
 use extra::arc;
 use std::comm::*;
+use extra::priority_queue::PriorityQueue;
+use std::rt::io::net::ip::*;
 
 static PORT:    int = 4414;
 static IP: &'static str = "127.0.0.1";
 
 struct sched_msg {
     stream: Option<std::rt::io::net::tcp::TcpStream>,
-    filepath: ~std::path::PosixPath
+    filepath: ~std::path::PosixPath,
+    ip: IpAddr,
 }
 
 fn main() {
-    let req_vec: ~[sched_msg] = ~[];
+    let mut req_vec : PriorityQueue<sched_msg> = PriorityQueue::new();
     let shared_req_vec = arc::RWArc::new(req_vec);
     let add_vec = shared_req_vec.clone();
     let take_vec = shared_req_vec.clone();
@@ -68,8 +71,7 @@ fn main() {
             do take_vec.write |vec| {
                 if ((*vec).len() > 0) {
                     // LIFO didn't make sense in service scheduling, so we modify it as FIFO by using shift_opt() rather than pop().
-                    let tf_opt: Option<sched_msg> = (*vec).shift_opt();
-                    let tf = tf_opt.unwrap();
+                    let tf : sched_msg = (*vec).pop();
                     println(fmt!("shift from queue, size: %ud", (*vec).len()));
                     sm_chan.send(tf); // send the request to send-response-task to serve.
                 }
@@ -117,6 +119,8 @@ fn main() {
                 });
 
             println(fmt!("Visitor IP is %s", visitor_ip.to_str()));
+		
+
 
             let mut buf = [0, ..500];
             stream.read(buf);
@@ -146,7 +150,7 @@ fn main() {
                 }
                 else {
                     // Requests scheduling
-                    let msg: sched_msg = sched_msg{stream: stream, filepath: file_path.clone()};
+                    let msg: sched_msg = sched_msg{stream: stream, filepath: file_path.clone(), ip: visitor_ip};
                     let (sm_port, sm_chan) = std::comm::stream();
                     sm_chan.send(msg);
                     
@@ -162,4 +166,34 @@ fn main() {
             println!("connection terminates")
         }
     }
+}
+
+impl Ord for sched_msg {
+
+	fn lt(&self, other: &sched_msg) -> bool {
+	
+		let selfIP: IpAddr = self.ip;
+		let otherIP: IpAddr = other.ip;
+
+		match selfIP {
+			Ipv4Addr(a , b, c, d) => {
+				if ((a == 128 && b == 143) || (a == 137 && b == 54)){
+					return false;
+				}else{
+					return true;;
+				}
+			},
+			Ipv6Addr(a, b, c, d, e, f, g, h) => {
+				if ((a == 128 && b == 143) || (a == 137 && b == 54)){
+					return false;
+				}else{
+					return true;
+				}
+				
+			}
+		}
+
+		
+	}
+
 }
