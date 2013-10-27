@@ -1,0 +1,3 @@
+pub fn gash(html: ~str) -> ~str {
+    ~"hello"
+}

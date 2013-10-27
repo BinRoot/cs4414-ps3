@@ -24,6 +24,8 @@ use std::comm::*;
 use extra::priority_queue::PriorityQueue;
 use std::rt::io::net::ip::*;
 
+mod gashing;
+
 static PORT:    int = 4414;
 static IP: &'static str = "127.0.0.1";
 
@@ -35,7 +37,9 @@ struct sched_msg {
 }
 
 fn main() {
+
     let mut req_vec : PriorityQueue<sched_msg> = PriorityQueue::new();
+    gashing::gashify(~"<!--#exec cmd=\"echo \\\"hi\\\"\" -->");
     let shared_req_vec = arc::RWArc::new(req_vec);
     let add_vec = shared_req_vec.clone();
     let take_vec = shared_req_vec.clone();
