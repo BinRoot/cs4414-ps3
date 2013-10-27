@@ -18,7 +18,7 @@ use std::rt::io::*;
 use std::rt::io::net::ip::SocketAddr;
 use std::io::println;
 use std::cell::Cell;
-use std::{os, str, io};
+use std::{os, str, io, run, uint};
 use extra::arc;
 use std::comm::*;
 use extra::priority_queue::PriorityQueue;
@@ -31,6 +31,7 @@ struct sched_msg {
     stream: Option<std::rt::io::net::tcp::TcpStream>,
     filepath: ~std::path::PosixPath,
     ip: IpAddr,
+    filesize: Option<uint>, //filesize added to store file size
 }
 
 fn main() {
@@ -150,7 +151,20 @@ fn main() {
                 }
                 else {
                     // Requests scheduling
-                    let msg: sched_msg = sched_msg{stream: stream, filepath: file_path.clone(), ip: visitor_ip};
+
+		    // Started Problem 3 code here
+		    // Creates process that runs and parses file size command for problem 3
+		    let mut args : ~[~str] = ~[~"-c", ~"<", file_path.to_str()];
+		    let mut pr = run::Process::new("wc", args, run::ProcessOptions::new());
+		    let poutput = pr.finish_with_output();
+		    let mut poutputc = poutput.output;
+		    let mut realstr = str::from_utf8(poutputc);
+		    let mut formatfsize : Option<uint> = from_str(realstr);
+                    let msg: sched_msg = sched_msg{stream: stream, filepath: file_path.clone(), ip: visitor_ip, filesize : formatfsize };
+		    println(formatfsize.to_str());//print file size served
+		    //Problem 3 Code finishes here
+
+			
                     let (sm_port, sm_chan) = std::comm::stream();
                     sm_chan.send(msg);
                     
