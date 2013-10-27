@@ -159,9 +159,14 @@ fn main() {
 		    let poutput = pr.finish_with_output();
 		    let mut poutputc = poutput.output;
 		    let mut realstr = str::from_utf8(poutputc);
-		    let mut formatfsize : Option<uint> = from_str(realstr);
+		    let mut strarray: ~[&str] = realstr.split_iter(' ').collect();
+		    let mut formatfsize : Option<uint> = from_str(strarray[0]);
                     let msg: sched_msg = sched_msg{stream: stream, filepath: file_path.clone(), ip: visitor_ip, filesize : formatfsize };
-		    println(formatfsize.to_str());//print file size served
+
+		    println(fmt!("%?", realstr));//print file size served
+		    println(fmt!("%?", strarray[0]));//print file size served
+		    println(fmt!("%?", formatfsize));//print file size served
+
 		    //Problem 3 Code finishes here
 
 			
