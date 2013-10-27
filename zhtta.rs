@@ -161,6 +161,7 @@ fn main() {
 		    let mut realstr = str::from_utf8(poutputc);
 		    let mut strarray: ~[&str] = realstr.split_iter(' ').collect();
 		    let mut formatfsize : Option<uint> = from_str(strarray[0]);
+
                     let msg: sched_msg = sched_msg{stream: stream, filepath: file_path.clone(), ip: visitor_ip, filesize : formatfsize };
 
 		    println(fmt!("%?", realstr));//print file size served
@@ -194,23 +195,38 @@ impl Ord for sched_msg {
 		let selfIP: IpAddr = self.ip;
 		let otherIP: IpAddr = other.ip;
 
+		let selfSize : Option<uint> = self.filesize;
+		let otherSize : Option<uint> = other.filesize;
+
+		
+
 		match selfIP {
 			Ipv4Addr(a , b, c, d) => {
 				if ((a == 128 && b == 143) || (a == 137 && b == 54)){
 					return false;
 				}else{
-					return true;;
+					if (selfSize < otherSize){
+						return false;
+					}else{
+						return true;
+					}
 				}
 			},
 			Ipv6Addr(a, b, c, d, e, f, g, h) => {
 				if ((a == 128 && b == 143) || (a == 137 && b == 54)){
 					return false;
 				}else{
-					return true;
+					if (selfSize < otherSize){
+						return false;
+					}else{
+						return true;
+					}
 				}
 				
 			}
 		}
+
+
 
 		
 	}
