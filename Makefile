@@ -1,4 +1,7 @@
 all: zhtta
 
 zhtta: 
-	rustc zhtta.rs
+	rustc gash.rs && rustc zhtta.rs
+
+clean:
+	rm -rf \#* *~ zhtta gash

@@ -1,9 +1,9 @@
 use std::{run, str};
+use std::hashmap::HashMap;
 
 pub fn gashify(html: ~str) -> ~str {
-    println(html);
-    let output: ~str = ~"";
 
+    // Record all indices of unescaped quotation marks
     let mut quote_iter = html.matches_index_iter("\"");
     let mut more_exists = true;
     let mut qvec: ~[uint] = ~[];
@@ -14,26 +14,38 @@ pub fn gashify(html: ~str) -> ~str {
                     qvec.push(quote_start);
                 }
             },
+            None => more_exists = false
+        }
+    }
+
+    // Record all indices of "-->" tokens
+    let mut endtoken_iter = html.matches_index_iter("-->");
+    more_exists = true;
+    let mut evec: ~[uint] = ~[];
+    while more_exists {
+        match endtoken_iter.next() {
+            Some ( (e_start, e_end) ) => {
+                evec.push(e_end);
+            },
             None => {
                 more_exists = false;
             }
         }
     }
 
-    println("qvec: "+qvec.to_str());
-
+    // Iterate though all matches of the starting token
     let mut m_iter = html.matches_index_iter("<!--#exec cmd=\"");
 
     more_exists = true;
-
     let mut cur_index: int = -1;
+    let mut replace_map: HashMap<~str, ~str> = HashMap::new();
 
     while more_exists {
         match m_iter.next() {
             Some( (start, end) ) => {
-                println("start: "+start.to_str());
+//                println("start: "+start.to_str());
                 if(start as int > cur_index) {
-                    println(start.to_str()+" "+end.to_str());
+//                    println(start.to_str()+" "+end.to_str());
                     let mut end_quote = -1;
                     for qval in qvec.iter() {
                         if qval > &end {
@@ -42,24 +54,53 @@ pub fn gashify(html: ~str) -> ~str {
                         }
                     }
                     if end_quote != -1 {
-                        let cmd = html.to_managed().slice_chars(end, end_quote).replace("\\\"", "\"").replace("\\\\","\\");
-                        println("found cmd: " + cmd);
-                        println("exec cmd: " + gash(cmd));
+                        let cmd = html.to_managed()
+                            .slice_chars(end, end_quote)
+                            .replace("\\\"", "\"").replace("\\\\","\\");
+                        let exec_token = html.slice(start, end_quote);
+                        
+                        let mut gash_comment: ~str = exec_token.to_owned();
+
+                        // Find next index of a "-->" token
+                        for endtoken_end_val in evec.iter() {
+                            if endtoken_end_val > &end_quote {
+                                gash_comment.push_str( 
+                                    html.slice(
+                                        end_quote.clone(), 
+                                        endtoken_end_val.clone()) );
+                                break;
+                            }
+                        }
+
+                        // Insert new key/val pair to a hashmap
+                        replace_map.find_or_insert(gash_comment, gash(cmd));
                         cur_index = end_quote as int;
                     }
                 }
             },
-            None => {
-                more_exists = false;
-            }
+            None => more_exists = false
         }
     }
 
+    // Go thought the hashmap, and replace each key with its value
+    let mut output = html.clone();
+    for keyval in replace_map.iter() {
+        match keyval { 
+            (a,b) => output = output.replace(*a, *b) 
+        }
+    }
+    
     output
 }
 
+// Invoke gash
 fn gash(cmd: ~str) -> ~str {
-    println("running "+cmd);
-    let output = str::from_utf8(run::process_output(cmd, []).output);
-    output
+    let mut argv: ~[~str] = cmd.split_iter(' ').filter(|&x| x != "")
+            .map(|x| x.to_owned()).collect();
+    let mut pr = run::Process::new("./gash", argv, run::ProcessOptions::new());
+    let poutput = pr.finish_with_output();
+    let mut poutputc = poutput.output;
+    let mut realstr: ~str = str::from_utf8(poutputc);
+
+    realstr.trim().to_owned()
 }

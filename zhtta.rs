@@ -37,9 +37,10 @@ struct sched_msg {
 }
 
 fn main() {
+    let output = gashing::gashify(~"<!--#exec cmd=\"echo \\\"-->\\\"\"   --> <!--#exec cmd=\"date\"-->");
+    println(output);
 
     let mut req_vec : PriorityQueue<sched_msg> = PriorityQueue::new();
-    gashing::gashify(~"<!--#exec cmd=\"echo \\\"hi\\\"\" -->");
     let shared_req_vec = arc::RWArc::new(req_vec);
     let add_vec = shared_req_vec.clone();
     let take_vec = shared_req_vec.clone();
@@ -60,9 +61,20 @@ fn main() {
                     Ok(file_data) => {
                         println(fmt!("begin serving file [%?]", tf.filepath));
                         // A web server should always reply a HTTP header for any legal HTTP request.
-                        tf.stream.write("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream; charset=UTF-8\r\n\r\n".as_bytes());
-                        tf.stream.write(file_data);
-                        println(fmt!("finish file [%?]", tf.filepath));
+                        let ref file =tf.filepath.components[tf.filepath.components.len()-1];
+                        if file.ends_with(".html") {
+                            tf.stream.write("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n".as_bytes());
+                            let strval = str::from_utf8(file_data);
+                            let gashresult = gashing::gashify(strval);
+                            let gashed_file_data = gashresult.as_bytes();
+                            tf.stream.write(gashed_file_data);
+                        } else if file.ends_with(".txt") || file.ends_with(".md") {
+                            tf.stream.write("HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n".as_bytes());
+                            tf.stream.write(file_data);
+                        } else {
+                            tf.stream.write("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream; charset=UTF-8\r\n\r\n".as_bytes());
+                            tf.stream.write(file_data);
+                        }
                     }
                     Err(err) => {
                         println(err);
