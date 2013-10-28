@@ -23,6 +23,7 @@ use extra::arc;
 use std::comm::*;
 use extra::priority_queue::PriorityQueue;
 use std::rt::io::net::ip::*;
+use std::hashmap::HashMap;
 
 mod gashing;
 
@@ -37,8 +38,9 @@ struct sched_msg {
 }
 
 fn main() {
-    let output = gashing::gashify(~"<!--#exec cmd=\"echo \\\"-->\\\"\"   --> <!--#exec cmd=\"date\"-->");
-    println(output);
+    let mut cache: HashMap<~str, ~[u8]> = HashMap::new();
+    let shared_cache = arc::RWArc::new(cache);
+    let add_cache = shared_cache.clone();
 
     let mut req_vec : PriorityQueue<sched_msg> = PriorityQueue::new();
     let shared_req_vec = arc::RWArc::new(req_vec);
@@ -57,29 +59,63 @@ fn main() {
         do spawn {
             loop {
                 let mut tf: sched_msg = sm_port.recv(); // wait for the dequeued request to handle
-                match io::read_whole_file(tf.filepath) { // killed if file size is larger than memory size.
-                    Ok(file_data) => {
-                        println(fmt!("begin serving file [%?]", tf.filepath));
-                        // A web server should always reply a HTTP header for any legal HTTP request.
-                        let ref file =tf.filepath.components[tf.filepath.components.len()-1];
-                        if file.ends_with(".html") {
-                            tf.stream.write("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n".as_bytes());
-                            let strval = str::from_utf8(file_data);
-                            let gashresult = gashing::gashify(strval);
-                            let gashed_file_data = gashresult.as_bytes();
-                            tf.stream.write(gashed_file_data);
-                        } else if file.ends_with(".txt") || file.ends_with(".md") {
-                            tf.stream.write("HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n".as_bytes());
-                            tf.stream.write(file_data);
-                        } else {
-                            tf.stream.write("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream; charset=UTF-8\r\n\r\n".as_bytes());
-                            tf.stream.write(file_data);
+
+                let ref file = tf.filepath.components[tf.filepath.components.len()-1];
+
+
+                let mut cache_data: Option<~[u8]> = None;
+                
+                do add_cache.write | map | {
+                    let foundfile: Option<&~[u8]> = (*map).find(file);
+                    match foundfile {
+                        Some(stuff) => {
+                            cache_data = Some( stuff.to_owned() );
+                        },
+                        None => ()
+                    }
+
+                }
+
+                
+                let mut file_data: ~[u8] = ~[];
+                match cache_data {
+                    Some(ref data) => {
+                        println("\n[Cache] hit! found "+file.to_owned()+"\n");
+                        file_data = (*data).to_owned();
+                    },
+                    None => {
+                        match io::read_whole_file(tf.filepath) {
+                            Ok(data) => {
+                                println("\n[Cache] miss, could not file "+file.to_owned()+"\n");
+                                file_data = data;
+                                
+                                do add_cache.write | map | {
+                                    (*map).swap(file.to_owned(), file_data.clone());
+                                }
+
+                            }
+                            Err(err) => println(err)
                         }
                     }
-                    Err(err) => {
-                        println(err);
-                    }
                 }
+
+
+                println(fmt!("begin serving file [%?]", tf.filepath));
+                // A web server should always reply a HTTP header for any legal HTTP request.
+
+                if file.ends_with(".html") {
+                    tf.stream.write("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n".as_bytes());
+                    let strval = str::from_utf8(file_data);
+                    let gashresult = gashing::gashify(strval);
+                    file_data = gashresult.as_bytes().to_owned();
+                } else if file.ends_with(".txt") || file.ends_with(".md") {
+                    tf.stream.write("HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n".as_bytes());
+                } else {
+                    tf.stream.write("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream; charset=UTF-8\r\n\r\n".as_bytes());
+                }
+
+                tf.stream.write(file_data);
+
             }
         }
         
@@ -136,7 +172,6 @@ fn main() {
                 });
 
             println(fmt!("Visitor IP is %s", visitor_ip.to_str()));
-		
 
 
             let mut buf = [0, ..500];
@@ -241,10 +276,7 @@ impl Ord for sched_msg {
 				
 			}
 		}
-
-
-
 		
 	}
-
 }
+
