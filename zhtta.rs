@@ -86,7 +86,7 @@ fn main() {
                     None => {
                         match io::read_whole_file(tf.filepath) {
                             Ok(data) => {
-                                println("\n[Cache] miss, could not file "+file.to_owned()+"\n");
+                                println("\n[Cache] miss, could not find "+file.to_owned()+"\n");
                                 file_data = data;
                                 
                                 do add_cache.write | map | {
