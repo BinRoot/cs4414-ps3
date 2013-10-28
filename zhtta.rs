@@ -247,34 +247,65 @@ impl Ord for sched_msg {
 		let otherIP: IpAddr = other.ip;
 
 		let selfSize : Option<uint> = self.filesize;
-		let otherSize : Option<uint> = other.filesize;
+		let mut sSize: uint = 0;
+		match selfSize{
+			Some(i) => {
+				sSize=i;},
+			None =>  {return true;}
+		}
 
-		
+		let otherSize : Option<uint> = other.filesize;
+		let mut oSize: uint = 0;
+		match otherSize{
+			Some(k) => {
+				oSize=k;},
+			None =>  {return true;}
+		}
+
+		let mut sIP : bool = false;
+		let mut oIP : bool = false;
 
 		match selfIP {
 			Ipv4Addr(a , b, c, d) => {
 				if ((a == 128 && b == 143) || (a == 137 && b == 54)){
-					return false;
-				}else{
-					if (selfSize < otherSize){
-						return false;
-					}else{
-						return true;
-					}
+					sIP = true;
 				}
 			},
 			Ipv6Addr(a, b, c, d, e, f, g, h) => {
 				if ((a == 128 && b == 143) || (a == 137 && b == 54)){
-					return false;
-				}else{
-					if (selfSize < otherSize){
-						return false;
-					}else{
-						return true;
-					}
+					sIP = true;
 				}
 				
 			}
+		}
+		
+		match otherIP {
+			Ipv4Addr(a , b, c, d) => {
+				if ((a == 128 && b == 143) || (a == 137 && b == 54)){
+					oIP = true;
+				}
+			},
+			Ipv6Addr(a, b, c, d, e, f, g, h) => {
+				if ((a == 128 && b == 143) || (a == 137 && b == 54)){
+					oIP = true;
+				}
+				
+			}
+		}
+		if(sIP && oIP){
+			if(sSize < oSize){
+				return false;
+			}else {
+				return true;
+			}
+		}else if(sIP){
+			return false;
+		}else if (oIP){
+			return true;
+		}else if(sSize < oSize){
+			return false;
+		}else {
+			return true;
 		}
 		
 	}
