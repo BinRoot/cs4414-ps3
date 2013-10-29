@@ -42,6 +42,10 @@ fn main() {
     let shared_cache = arc::RWArc::new(cache);
     let add_cache = shared_cache.clone();
 
+    let mut cache_queue: ~[~str] = ~[];
+    let shared_cache_queue = arc::RWArc::new(cache_queue);
+    let add_cache_queue = shared_cache_queue.clone();
+
     let mut req_vec : PriorityQueue<sched_msg> = PriorityQueue::new();
     let shared_req_vec = arc::RWArc::new(req_vec);
     let add_vec = shared_req_vec.clone();
@@ -62,10 +66,23 @@ fn main() {
 
                 let ref file = tf.filepath.components[tf.filepath.components.len()-1];
 
+                do add_cache_queue.write |vec| {
+                    vec.push(file.to_owned());
+
+                    let mut index_r = 0;
+                    for v in vec.iter() {
+                        if v==file {
+                            break;
+                        } 
+                        index_r += 1;
+                    }
+                    vec.remove(index_r);
+                }
 
                 let mut cache_data: Option<~[u8]> = None;
                 
                 do add_cache.write | map | {
+                    
                     let foundfile: Option<&~[u8]> = (*map).find(file);
                     match foundfile {
                         Some(stuff) => {
@@ -73,7 +90,6 @@ fn main() {
                         },
                         None => ()
                     }
-
                 }
 
                 
@@ -86,10 +102,23 @@ fn main() {
                     None => {
                         match io::read_whole_file(tf.filepath) {
                             Ok(data) => {
-                                println("\n[Cache] miss, could not file "+file.to_owned()+"\n");
+                                println("\n[Cache] miss, could not find "+file.to_owned()+"\n");
                                 file_data = data;
                                 
                                 do add_cache.write | map | {
+                                    if (*map).len() > 1000 {
+                                        do add_cache_queue.write |vec| {
+                                            match vec.shift_opt() {
+                                                Some(vecitem) => {
+                                                    (*map).swap(vecitem, ~[]);
+                                                },
+                                                None => {
+                                                }
+                                            }
+                                        }
+
+                                    }
+
                                     (*map).swap(file.to_owned(), file_data.clone());
                                 }
 
