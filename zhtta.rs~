@@ -212,7 +212,7 @@ fn main() {
                 let mut path = req_group[1];
                 println(fmt!("Request for path: \n%?", path));
                 
-                let mut file_path = ~os::getcwd().push(path.replace("/../", ""));
+                let file_path = ~os::getcwd().push(path.replace("/../", ""));
                 if !os::path_exists(file_path) || os::path_is_dir(file_path) {
 		   if(path.to_str() == ~"/"){
                     println(fmt!("Request received:\n%s", request_str));
