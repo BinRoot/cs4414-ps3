@@ -1,0 +1,29 @@
+httperf --hog --timeout=5 --client=0/1 --server=localhost --port=4414 --uri=/ --rate=10 --send-buffer=4096 --recv-buffer=16384 --wsesslog=40,0.000,input
+Maximum connect burst length: 2
+
+Total: connections 1920 requests 3800 replies 1920 test-duration 4.047 s
+
+Connection rate: 474.4 conn/s (2.1 ms/conn, <=3 concurrent connections)
+Connection time [ms]: min 0.4 avg 3.3 max 17.4 median 2.5 stddev 2.6
+Connection time [ms]: connect 0.4
+Connection length [replies/conn]: 1.000
+
+Request rate: 938.9 req/s (1.1 ms/req)
+Request size [B]: 140.0
+
+Reply rate [replies/s]: min 0.0 avg 0.0 max 0.0 stddev 0.0 (0 samples)
+Reply time [ms]: response 0.8 transfer 0.0
+Reply size [B]: header 59.0 content 368.0 footer 0.0 (total 427.0)
+Reply status: 1xx=0 2xx=1920 3xx=0 4xx=0 5xx=0
+
+CPU time [s]: user 0.37 system 1.69 (user 9.1% system 41.8% total 50.9%)
+Net I/O: 327.2 KB/s (2.7*10^6 bps)
+
+Errors: total 1880 client-timo 0 socket-timo 0 connrefused 0 connreset 1880
+Errors: fd-unavail 0 addrunavail 0 ftab-full 0 other 0
+
+Session rate [sess/s]: min 0.00 avg 9.88 max 0.00 stddev 0.00 (40/40)
+Session: avg 48.00 connections/session
+Session lifetime [s]: 0.2
+Session failtime [s]: 0.0
+Session length histogram: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 40
