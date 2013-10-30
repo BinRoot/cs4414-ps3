@@ -15,10 +15,9 @@
 extern mod extra;
 
 use std::rt::io::*;
-use std::rt::io::net::ip::SocketAddr;
 use std::io::println;
 use std::cell::Cell;
-use std::{os, str, io, run, uint};
+use std::{os, str, io, run};
 use extra::arc;
 use std::comm::*;
 use extra::priority_queue::PriorityQueue;
@@ -38,15 +37,15 @@ struct sched_msg {
 }
 
 fn main() {
-    let mut cache: HashMap<~str, ~[u8]> = HashMap::new();
+    let cache: HashMap<~str, ~[u8]> = HashMap::new();
     let shared_cache = arc::RWArc::new(cache);
     let add_cache = shared_cache.clone();
 
-    let mut cache_queue: ~[~str] = ~[];
+    let cache_queue: ~[~str] = ~[];
     let shared_cache_queue = arc::RWArc::new(cache_queue);
     let add_cache_queue = shared_cache_queue.clone();
 
-    let mut req_vec : PriorityQueue<sched_msg> = PriorityQueue::new();
+    let req_vec : PriorityQueue<sched_msg> = PriorityQueue::new();
     let shared_req_vec = arc::RWArc::new(req_vec);
     let add_vec = shared_req_vec.clone();
     let take_vec = shared_req_vec.clone();
@@ -76,7 +75,9 @@ fn main() {
                         } 
                         index_r += 1;
                     }
-                    vec.remove(index_r);
+                    if index_r < vec.len() {
+                        vec.remove(index_r);
+                    }
                 }
 
                 let mut cache_data: Option<~[u8]> = None;
@@ -242,13 +243,13 @@ fn main() {
 
 		    // Started Problem 3 code here
 		    // Creates process that runs and parses file size command for problem 3
-		    let mut args : ~[~str] = ~[~"-c", ~"<", file_path.to_str()];
+		    let args : ~[~str] = ~[~"-c", ~"<", file_path.to_str()];
 		    let mut pr = run::Process::new("wc", args, run::ProcessOptions::new());
 		    let poutput = pr.finish_with_output();
-		    let mut poutputc = poutput.output;
-		    let mut realstr = str::from_utf8(poutputc);
-		    let mut strarray: ~[&str] = realstr.split_iter(' ').collect();
-		    let mut formatfsize : Option<uint> = from_str(strarray[0]);
+		    let poutputc = poutput.output;
+		    let realstr = str::from_utf8(poutputc);
+		    let strarray: ~[&str] = realstr.split_iter(' ').collect();
+		    let formatfsize : Option<uint> = from_str(strarray[0]);
 
                     let msg: sched_msg = sched_msg{stream: stream, filepath: file_path.clone(), ip: visitor_ip, filesize : formatfsize };
 
@@ -300,12 +301,12 @@ impl Ord for sched_msg {
 		let mut oIP : bool = false;
 
 		match selfIP {
-			Ipv4Addr(a , b, c, d) => {
+			Ipv4Addr(a , b, _, _) => {
 				if ((a == 128 && b == 143) || (a == 137 && b == 54)){
 					sIP = true;
 				}
 			},
-			Ipv6Addr(a, b, c, d, e, f, g, h) => {
+			Ipv6Addr(a, b, _, _, _, _, _, _) => {
 				if ((a == 128 && b == 143) || (a == 137 && b == 54)){
 					sIP = true;
 				}
@@ -314,12 +315,12 @@ impl Ord for sched_msg {
 		}
 		
 		match otherIP {
-			Ipv4Addr(a , b, c, d) => {
+			Ipv4Addr(a , b, _, _) => {
 				if ((a == 128 && b == 143) || (a == 137 && b == 54)){
 					oIP = true;
 				}
 			},
-			Ipv6Addr(a, b, c, d, e, f, g, h) => {
+			Ipv6Addr(a, b, _, _, _, _, _, _) => {
 				if ((a == 128 && b == 143) || (a == 137 && b == 54)){
 					oIP = true;
 				}

@@ -9,7 +9,7 @@ pub fn gashify(html: ~str) -> ~str {
     let mut qvec: ~[uint] = ~[];
     while more_exists {
         match quote_iter.next() {
-            Some ( (quote_start, quote_end) ) => {
+            Some ( (quote_start, _) ) => {
                 if html.len()>quote_start && html.char_at(quote_start-1)!='\\' {
                     qvec.push(quote_start);
                 }
@@ -24,7 +24,7 @@ pub fn gashify(html: ~str) -> ~str {
     let mut evec: ~[uint] = ~[];
     while more_exists {
         match endtoken_iter.next() {
-            Some ( (e_start, e_end) ) => {
+            Some ( (_, e_end) ) => {
                 evec.push(e_end);
             },
             None => {
@@ -95,12 +95,12 @@ pub fn gashify(html: ~str) -> ~str {
 
 // Invoke gash
 fn gash(cmd: ~str) -> ~str {
-    let mut argv: ~[~str] = cmd.split_iter(' ').filter(|&x| x != "")
+    let argv: ~[~str] = cmd.split_iter(' ').filter(|&x| x != "")
             .map(|x| x.to_owned()).collect();
     let mut pr = run::Process::new("./gash", argv, run::ProcessOptions::new());
     let poutput = pr.finish_with_output();
-    let mut poutputc = poutput.output;
-    let mut realstr: ~str = str::from_utf8(poutputc);
+    let poutputc = poutput.output;
+    let realstr: ~str = str::from_utf8(poutputc);
 
     realstr.trim().to_owned()
 }
